@@ -1,0 +1,15 @@
+# Ignore dataset
+data/
+
+# Ignore temp files
+.temp/
+
+# Ignore environment
+.env/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
