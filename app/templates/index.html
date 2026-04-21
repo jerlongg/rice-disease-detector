@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Rice Disease Detector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── Variables ── */
+  :root {
+    --green-deep:   #1a3a2a;
+    --green-mid:    #2d6a4f;
+    --green-light:  #52b788;
+    --green-pale:   #d8f3dc;
+    --gold:         #e9c46a;
+    --amber:        #f4a261;
+    --red:          #e76f51;
+    --cream:        #faf7f0;
+    --ink:          #1a1a1a;
+    --muted:        #6b7280;
+    --card:         #ffffff;
+    --border:       #e5e0d8;
+    --radius:       12px;
+    --shadow:       0 4px 24px rgba(26,58,42,.08);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--green-deep);
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .logo-icon {
+    width: 44px; height: 44px;
+    background: var(--green-light);
+    border-radius: 10px;
+    display: grid; place-items: center;
+    font-size: 22px;
+  }
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.45rem;
+    color: #fff;
+    letter-spacing: -.3px;
+  }
+  header p {
+    font-size: .8rem;
+    color: var(--green-pale);
+    opacity: .75;
+    margin-top: 2px;
+  }
+  .badge {
+    margin-left: auto;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.2);
+    color: var(--green-pale);
+    font-size: .7rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: .5px;
+  }
+
+  /* ── Main layout ── */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 28px;
+  }
+  @media (max-width: 760px) {
+    main { grid-template-columns: 1fr; }
+    header { padding: 16px 20px; }
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .card-body { padding: 20px; }
+
+  /* ── Upload zone ── */
+  #drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    position: relative;
+  }
+  #drop-zone:hover, #drop-zone.dragover {
+    border-color: var(--green-light);
+    background: #f0faf4;
+  }
+  #drop-zone .icon { font-size: 2.4rem; margin-bottom: 10px; }
+  #drop-zone p { font-size: .88rem; color: var(--muted); }
+  #drop-zone strong { color: var(--green-mid); }
+  #file-input { display: none; }
+
+  /* ── Preview ── */
+  #preview-wrap { display: none; margin-top: 16px; }
+  #preview-img {
+    width: 100%;
+    border-radius: 8px;
+    display: block;
+    max-height: 240px;
+    object-fit: cover;
+  }
+  .preview-name {
+    margin-top: 8px;
+    font-size: .78rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* ── Analyse button ── */
+  #analyse-btn {
+    width: 100%;
+    margin-top: 18px;
+    padding: 13px;
+    background: var(--green-mid);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .95rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .2s, transform .1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  #analyse-btn:hover:not(:disabled) { background: var(--green-deep); }
+  #analyse-btn:active:not(:disabled) { transform: scale(.98); }
+  #analyse-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ── Spinner ── */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Right panel — placeholder ── */
+  #result-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 360px;
+    color: var(--muted);
+    gap: 12px;
+  }
+  #result-placeholder .ph-icon { font-size: 3rem; opacity: .3; }
+  #result-placeholder p { font-size: .88rem; }
+
+  /* ── Result panel ── */
+  #result-panel { display: none; }
+
+  /* Diagnosis header */
+  .diag-header {
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .diag-icon {
+    width: 48px; height: 48px; border-radius: 10px;
+    display: grid; place-items: center;
+    font-size: 1.5rem; flex-shrink: 0;
+  }
+  .sev-high   { background: #fef2f2; }
+  .sev-medium { background: #fff7ed; }
+  .sev-none   { background: #f0fdf4; }
+  .sev-insect { background: #fefce8; }
+
+  .diag-title { font-family: 'DM Serif Display', serif; font-size: 1.35rem; }
+  .diag-meta  { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+  .pill {
+    font-size: .7rem; font-weight: 600; letter-spacing: .4px;
+    padding: 3px 9px; border-radius: 20px; text-transform: uppercase;
+  }
+  .pill-type     { background: var(--green-pale); color: var(--green-deep); }
+  .pill-conf     { background: #eff6ff; color: #1d4ed8; }
+  .pill-warn     { background: #fff7ed; color: #c2410c; }
+
+  /* Low confidence warning */
+  .low-conf-banner {
+    margin: 0 20px 0;
+    padding: 10px 14px;
+    background: #fff7ed;
+    border-left: 3px solid var(--amber);
+    border-radius: 0 6px 6px 0;
+    font-size: .82rem;
+    color: #92400e;
+    display: none;
+  }
+
+  /* Description + action */
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 20px;
+  }
+  @media (max-width: 600px) { .info-grid { grid-template-columns: 1fr; } }
+
+  .info-block label {
+    font-size: .67rem; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--muted); display: block;
+    margin-bottom: 6px;
+  }
+  .info-block p { font-size: .85rem; line-height: 1.55; color: var(--ink); }
+
+  /* Images row */
+  .images-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 0 20px 20px;
+  }
+  .img-block { text-align: center; }
+  .img-block img {
+    width: 100%; border-radius: 8px; display: block;
+    border: 1px solid var(--border);
+  }
+  .img-label {
+    font-size: .72rem; color: var(--muted); margin-top: 6px;
+    font-weight: 500;
+  }
+
+  /* Score bars */
+  .scores-section {
+    border-top: 1px solid var(--border);
+    padding: 16px 20px;
+  }
+  .scores-title {
+    font-size: .67rem; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+  }
+  .score-row { margin-bottom: 9px; }
+  .score-row-top {
+    display: flex; justify-content: space-between;
+    font-size: .8rem; margin-bottom: 4px;
+  }
+  .score-name { font-weight: 500; }
+  .score-pct  { color: var(--muted); }
+  .bar-track  {
+    height: 6px; background: var(--border);
+    border-radius: 3px; overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%; border-radius: 3px;
+    background: var(--green-light);
+    transition: width .6s cubic-bezier(.4,0,.2,1);
+  }
+  .bar-fill.top { background: var(--green-mid); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-icon">🌾</div>
+  <div>
+    <h1>Rice Disease Detector</h1>
+    <p>AI-powered leaf diagnosis for Cambodian rice farmers</p>
+  </div>
+  <span class="badge">6 CLASSES · ResNet-50</span>
+</header>
+
+<main>
+  <!-- ── Left: Upload ── -->
+  <div>
+    <div class="card">
+      <div class="card-header">Upload Leaf Image</div>
+      <div class="card-body">
+        <div id="drop-zone">
+          <div class="icon">📷</div>
+          <p>Drag & drop a photo here<br>or <strong>click to browse</strong></p>
+          <p style="margin-top:8px;font-size:.75rem">JPG / PNG · max 10 MB</p>
+        </div>
+        <input type="file" id="file-input" accept=".jpg,.jpeg,.png">
+        <div id="preview-wrap">
+          <img id="preview-img" src="" alt="Preview">
+          <p class="preview-name" id="preview-name"></p>
+        </div>
+        <button id="analyse-btn" disabled>
+          <span id="btn-text">Analyse Leaf</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Class reference -->
+    <div class="card" style="margin-top:20px;">
+      <div class="card-header">Detectable Conditions</div>
+      <div class="card-body" style="padding:12px 16px;">
+        <div style="display:grid;gap:8px;">
+          <div style="display:flex;align-items:center;gap:10px;font-size:.82rem;">🦠 <strong>Bacterial Blight</strong> — Bacterial</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:.82rem;">🍄 <strong>Leaf Blast</strong> — Fungal</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:.82rem;">🍄 <strong>Brown Spot</strong> — Fungal</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:.82rem;">🦠 <strong>Tungro</strong> — Viral</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:.82rem;">✅ <strong>Healthy Leaf</strong></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:.82rem;">🐛 <strong>Hispa</strong> — Insect damage</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Right: Result ── -->
+  <div class="card">
+    <!-- Placeholder -->
+    <div id="result-placeholder">
+      <div class="ph-icon">🔬</div>
+      <p>Upload a rice leaf photo to begin diagnosis</p>
+    </div>
+
+    <!-- Result -->
+    <div id="result-panel">
+      <div class="diag-header">
+        <div class="diag-icon" id="diag-icon">🌿</div>
+        <div>
+          <div class="diag-title" id="diag-title">—</div>
+          <div class="diag-meta">
+            <span class="pill pill-type" id="pill-type">—</span>
+            <span class="pill pill-conf" id="pill-conf">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="low-conf-banner" id="low-conf-banner">
+        ⚠️ <strong>Low confidence prediction.</strong> The model is less certain about this result. Consider retaking the photo with better lighting or a clearer view of the leaf.
+      </div>
+
+      <div class="info-grid">
+        <div class="info-block">
+          <label>Observed Symptoms</label>
+          <p id="diag-description">—</p>
+        </div>
+        <div class="info-block">
+          <label>Recommended Action</label>
+          <p id="diag-action">—</p>
+        </div>
+      </div>
+
+      <div class="images-row">
+        <div class="img-block">
+          <img id="orig-img" src="" alt="Original">
+          <div class="img-label">Original Image</div>
+        </div>
+        <div class="img-block">
+          <img id="heat-img" src="" alt="Grad-CAM++ Heatmap">
+          <div class="img-label">Grad-CAM++ Attention</div>
+        </div>
+      </div>
+
+      <div class="scores-section">
+        <div class="scores-title">All Class Scores</div>
+        <div id="score-bars"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const dropZone   = document.getElementById('drop-zone');
+const fileInput  = document.getElementById('file-input');
+const previewWrap= document.getElementById('preview-wrap');
+const previewImg = document.getElementById('preview-img');
+const previewName= document.getElementById('preview-name');
+const analyseBtn = document.getElementById('analyse-btn');
+const btnText    = document.getElementById('btn-text');
+
+// Severity → icon mapping
+const sevIcons = {
+  high: '⚠️', medium: '🟡', none: '✅', insect: '🐛'
+};
+const sevClass = {
+  high: 'sev-high', medium: 'sev-medium', none: 'sev-none', insect: 'sev-insect'
+};
+
+// ── File selection ──────────────────────────────────────────────────────────
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) handleFile(fileInput.files[0]);
+});
+
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    previewImg.src = e.target.result;
+    previewName.textContent = file.name;
+    previewWrap.style.display = 'block';
+    analyseBtn.disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Analyse ─────────────────────────────────────────────────────────────────
+analyseBtn.addEventListener('click', async () => {
+  const file = fileInput.files[0] || null;
+  if (!file) return;
+
+  // Loading state
+  analyseBtn.disabled = true;
+  btnText.textContent = 'Analysing…';
+  analyseBtn.insertAdjacentHTML('afterbegin', '<div class="spinner" id="spin"></div>');
+
+  const form = new FormData();
+  form.append('image', file);
+
+  try {
+    const res  = await fetch('/predict', { method: 'POST', body: form });
+    const data = await res.json();
+
+    if (data.error) {
+      alert('Error: ' + data.error);
+      return;
+    }
+    showResult(data);
+  } catch (err) {
+    alert('Network error. Is the Flask server running?');
+  } finally {
+    analyseBtn.disabled = false;
+    btnText.textContent = 'Analyse Leaf';
+    document.getElementById('spin')?.remove();
+  }
+});
+
+// ── Render result ────────────────────────────────────────────────────────────
+function showResult(d) {
+  document.getElementById('result-placeholder').style.display = 'none';
+  const panel = document.getElementById('result-panel');
+  panel.style.display = 'block';
+
+  // Severity icon + bg
+  const sev = d.severity === 'insect' ? 'insect'
+            : d.severity === 'none'   ? 'none'
+            : d.severity;
+
+  const icon = document.getElementById('diag-icon');
+  icon.textContent = sevIcons[sev] || '🌿';
+  icon.className   = 'diag-icon ' + (sevClass[sev] || '');
+
+  document.getElementById('diag-title').textContent       = d.label;
+  document.getElementById('pill-type').textContent        = d.type;
+  document.getElementById('pill-conf').textContent        = d.confidence + '% confidence';
+  document.getElementById('diag-description').textContent = d.description;
+  document.getElementById('diag-action').textContent      = d.action;
+
+  // Low confidence banner
+  const banner = document.getElementById('low-conf-banner');
+  banner.style.display = d.low_conf ? 'block' : 'none';
+
+  // Images
+  document.getElementById('orig-img').src = 'data:image/png;base64,' + d.original_b64;
+  document.getElementById('heat-img').src = 'data:image/png;base64,' + d.heatmap_b64;
+
+  // Score bars
+  const container = document.getElementById('score-bars');
+  container.innerHTML = '';
+  d.all_scores.forEach((s, i) => {
+    const pct = (s.score * 100).toFixed(1);
+    container.insertAdjacentHTML('beforeend', `
+      <div class="score-row">
+        <div class="score-row-top">
+          <span class="score-name">${s.label}</span>
+          <span class="score-pct">${pct}%</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill ${i===0?'top':''}" style="width:0%"
+               data-target="${pct}"></div>
+        </div>
+      </div>`);
+  });
+  // Animate bars
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.bar-fill').forEach(bar => {
+      bar.style.width = bar.dataset.target + '%';
+    });
+  });
+}
+</script>
+</body>
+</html>
