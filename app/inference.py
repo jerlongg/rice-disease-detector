@@ -39,15 +39,22 @@ def read_image(file_bytes: bytes):
 
 class GradCAMPlusPlus:
     """
-    Hooks layer4 of the ResNet-50 backbone (index 7 in backbone children).
-    Squared-gradient weighting → tighter localisation for small lesions.
+    Hooks the final feature layer for both ResNet-50 and MobileNetV3.
+    ResNet-50: layer4 (index 7 in backbone children)
+    MobileNetV3: features block (features[-1])
     """
-    def __init__(self, model, device):
+    def __init__(self, model, device, model_type='resnet50'):
         self.model       = model
         self.device      = device
+        self.model_type  = model_type
         self.activations = None
         self.gradients   = None
-        target = list(model.backbone.children())[7]   # layer4
+        
+        if model_type == 'mobilenetv3':
+            target = model.features[-1]  # Last features block
+        else:  # resnet50
+            target = list(model.backbone.children())[7]  # layer4
+        
         target.register_forward_hook(
             lambda m, i, o: setattr(self, 'activations', o.detach()))
         target.register_full_backward_hook(
@@ -88,7 +95,7 @@ def img_to_b64(rgb: np.ndarray) -> str:
 
 # ── Main predict function ─────────────────────────────────────────────────────
 
-def predict(file_bytes: bytes, model, gradcam) -> dict:
+def predict(file_bytes: bytes, model, gradcam, model_name: str = 'resnet50') -> dict:
     img_rgb = read_image(file_bytes)
     tensor  = to_tensor(preprocess(img_rgb))
 
@@ -113,6 +120,7 @@ def predict(file_bytes: bytes, model, gradcam) -> dict:
     all_scores.sort(key=lambda x: x['score'], reverse=True)
 
     return {
+        'model':       model_name,
         'class':       class_name,
         'label':       info['label'],
         'type':        info['type'],

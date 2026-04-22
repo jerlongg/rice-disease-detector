@@ -288,6 +288,28 @@
     transition: width .6s cubic-bezier(.4,0,.2,1);
   }
   .bar-fill.top { background: var(--green-mid); }
+
+  /* ── Model selector ── */
+  #model-select {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: .9rem;
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: border-color .2s;
+  }
+  #model-select:hover {
+    border-color: var(--green-light);
+  }
+  #model-select:focus {
+    outline: none;
+    border-color: var(--green-mid);
+    box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.1);
+  }
 </style>
 </head>
 <body>
@@ -298,7 +320,7 @@
     <h1>Rice Disease Detector</h1>
     <p>AI-powered leaf diagnosis for Cambodian rice farmers</p>
   </div>
-  <span class="badge">6 CLASSES · ResNet-50</span>
+  <span class="badge" id="model-badge">6 CLASSES · ResNet-50</span>
 </header>
 
 <main>
@@ -307,6 +329,15 @@
     <div class="card">
       <div class="card-header">Upload Leaf Image</div>
       <div class="card-body">
+        <!-- Model selector -->
+        <div style="margin-bottom:18px;">
+          <label for="model-select" style="display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.4px;">Select Model</label>
+          <select id="model-select" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:6px;font-size:.9rem;background:#fff;cursor:pointer;">
+            <option value="resnet50">ResNet-50</option>
+            <option value="mobilenetv3">MobileNetV3</option>
+          </select>
+        </div>
+        
         <div id="drop-zone">
           <div class="icon">📷</div>
           <p>Drag & drop a photo here<br>or <strong>click to browse</strong></p>
@@ -402,6 +433,8 @@ const previewImg = document.getElementById('preview-img');
 const previewName= document.getElementById('preview-name');
 const analyseBtn = document.getElementById('analyse-btn');
 const btnText    = document.getElementById('btn-text');
+const modelSelect= document.getElementById('model-select');
+const modelBadge = document.getElementById('model-badge');
 
 // Severity → icon mapping
 const sevIcons = {
@@ -410,6 +443,17 @@ const sevIcons = {
 const sevClass = {
   high: 'sev-high', medium: 'sev-medium', none: 'sev-none', insect: 'sev-insect'
 };
+
+const modelNames = {
+  'resnet50': 'ResNet-50',
+  'mobilenetv3': 'MobileNetV3'
+};
+
+// ── Model selector ──────────────────────────────────────────────────────────
+modelSelect.addEventListener('change', () => {
+  const modelName = modelSelect.value;
+  modelBadge.textContent = `6 CLASSES · ${modelNames[modelName]}`;
+});
 
 // ── File selection ──────────────────────────────────────────────────────────
 dropZone.addEventListener('click', () => fileInput.click());
@@ -447,6 +491,7 @@ analyseBtn.addEventListener('click', async () => {
 
   const form = new FormData();
   form.append('image', file);
+  form.append('model', modelSelect.value);
 
   try {
     const res  = await fetch('/predict', { method: 'POST', body: form });
